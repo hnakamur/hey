@@ -28,6 +28,7 @@ import (
 	"time"
 
 	"golang.org/x/net/http2"
+	"golang.org/x/time/rate"
 )
 
 // Max size of the buffer of result channel.
@@ -52,6 +53,14 @@ type Work struct {
 	Request *http.Request
 
 	RequestBody []byte
+
+	// RequestBodyRate is the rate of rate limit of sending the request body.
+	// The default value of zero means no limit.
+	RequestBodyRate float64
+
+	// RequestBodyRate is the burst of rate limit of sending the request body.
+	// The default value of zero means no limit.
+	RequestBodyBurst int
 
 	// RequestFunc is a function to generate requests. If it is nil, then
 	// Request and RequestData are cloned for each request.
@@ -155,6 +164,10 @@ func (b *Work) makeRequest(c *http.Client) {
 		req = b.RequestFunc()
 	} else {
 		req = cloneRequest(b.Request, b.RequestBody)
+	}
+	if req.Body != nil && b.RequestBodyRate != 0 {
+		limiter := rate.NewLimiter(rate.Limit(b.RequestBodyRate), b.RequestBodyBurst)
+		req.Body = ioutil.NopCloser(NewRateLimitReader(req.Body, limiter))
 	}
 	trace := &httptrace.ClientTrace{
 		DNSStart: func(info httptrace.DNSStartInfo) {

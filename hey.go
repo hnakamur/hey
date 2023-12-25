@@ -64,6 +64,9 @@ var (
 	disableKeepAlives  = flag.Bool("disable-keepalive", false, "")
 	disableRedirects   = flag.Bool("disable-redirects", false, "")
 	proxyAddr          = flag.String("x", "", "")
+
+	reqBodyRate  = flag.Float64("req-body-rate", 0, "")
+	reqBodyBurst = flag.Int("req-body-burst", 0, "")
 )
 
 var usage = `Usage: hey [options...] <url>
@@ -101,6 +104,10 @@ Options:
   -disable-redirects    Disable following of HTTP redirects
   -cpus                 Number of used cpu cores.
                         (default for current machine is %d cores)
+
+  -req-body-rate        Rate of rate limit for request body in byte/second.
+                        (default value 0 is no rate limit)
+  -req-body-burst       Burst of rate limit for request body in byte/second.
 `
 
 func main() {
@@ -224,6 +231,8 @@ func main() {
 	w := &requester.Work{
 		Request:            req,
 		RequestBody:        bodyAll,
+		RequestBodyRate:    *reqBodyRate,
+		RequestBodyBurst:   *reqBodyBurst,
 		N:                  num,
 		C:                  conc,
 		QPS:                q,
