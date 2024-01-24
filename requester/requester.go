@@ -17,7 +17,9 @@ package requester
 
 import (
 	"bytes"
+	"crypto/rand"
 	"crypto/tls"
+	"encoding/hex"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -92,6 +94,9 @@ type Work struct {
 	// Writer is where results will be written. If nil, results are written to stdout.
 	Writer io.Writer
 
+	// EnableRandomRequestID is an option to add random ID request header.
+	EnableRandomRequestID bool
+
 	initOnce sync.Once
 	results  chan *result
 	stopCh   chan struct{}
@@ -155,6 +160,13 @@ func (b *Work) makeRequest(c *http.Client) {
 		req = b.RequestFunc()
 	} else {
 		req = cloneRequest(b.Request, b.RequestBody)
+	}
+	if b.EnableRandomRequestID {
+		var buf [16]byte
+		if _, err := rand.Read(buf[:]); err != nil {
+			panic(err)
+		}
+		req.Header.Add("X-Request-ID", hex.EncodeToString(buf[:]))
 	}
 	trace := &httptrace.ClientTrace{
 		DNSStart: func(info httptrace.DNSStartInfo) {
