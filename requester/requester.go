@@ -166,7 +166,7 @@ func (b *Work) makeRequest(c *http.Client) {
 		if _, err := rand.Read(buf[:]); err != nil {
 			panic(err)
 		}
-		req.Header.Add("X-Request-ID", hex.EncodeToString(buf[:]))
+		req.Header.Add("X-Request-Id", hex.EncodeToString(buf[:]))
 	}
 	trace := &httptrace.ClientTrace{
 		DNSStart: func(info httptrace.DNSStartInfo) {
