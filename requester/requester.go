@@ -17,7 +17,9 @@ package requester
 
 import (
 	"bytes"
+	"crypto/rand"
 	"crypto/tls"
+	"encoding/hex"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -35,16 +37,17 @@ const maxResult = 1000000
 const maxIdleConn = 500
 
 type result struct {
-	err           error
-	statusCode    int
-	offset        time.Duration
-	duration      time.Duration
-	connDuration  time.Duration // connection setup(DNS lookup + Dial up) duration
-	dnsDuration   time.Duration // dns lookup duration
-	reqDuration   time.Duration // request "write" duration
-	resDuration   time.Duration // response "read" duration
-	delayDuration time.Duration // delay between response and request
-	contentLength int64
+	err                error
+	statusCode         int
+	offset             time.Duration
+	duration           time.Duration
+	connDuration       time.Duration // connection setup(DNS lookup + Dial up) duration
+	dnsDuration        time.Duration // dns lookup duration
+	reqDuration        time.Duration // request "write" duration
+	resDuration        time.Duration // response "read" duration
+	delayDuration      time.Duration // delay between response and request
+	contentLength      int64
+	randomQueryIDParam string
 }
 
 type Work struct {
@@ -80,6 +83,9 @@ type Work struct {
 
 	// DisableRedirects is an option to prevent the following of HTTP redirects
 	DisableRedirects bool
+
+	// RandomRequestIDQuery is an option to add random request ID query parameter with the specified name
+	RandomRequestIDQuery string
 
 	// Output represents the output type. If "csv" is provided, the
 	// output will be dumped as a csv stream.
@@ -182,6 +188,31 @@ func (b *Work) makeRequest(c *http.Client) {
 		},
 	}
 	req = req.WithContext(httptrace.WithClientTrace(req.Context(), trace))
+	if b.RandomRequestIDQuery != "" {
+		var buf [16]byte
+		rand.Read(buf[:])
+		reqIDQuery := b.RandomRequestIDQuery + "=" + hex.EncodeToString(buf[:])
+		var newQuery string
+		if req.URL.RawQuery == "" {
+			newQuery = reqIDQuery
+		} else {
+			newQuery = req.URL.RawQuery + "&" + reqIDQuery
+		}
+		// Create a new URL with newQuery.
+		req.URL = &url.URL{
+			Scheme:      req.URL.Scheme,
+			Opaque:      req.URL.Opaque,
+			User:        req.URL.User,
+			Host:        req.URL.Host,
+			Path:        req.URL.Path,
+			RawPath:     req.URL.RawPath,
+			OmitHost:    req.URL.OmitHost,
+			ForceQuery:  req.URL.ForceQuery,
+			RawQuery:    newQuery,
+			Fragment:    req.URL.Fragment,
+			RawFragment: req.URL.RawFragment,
+		}
+	}
 	resp, err := c.Do(req)
 	if err == nil {
 		size = resp.ContentLength

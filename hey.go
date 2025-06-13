@@ -60,10 +60,11 @@ var (
 	h2   = flag.Bool("h2", false, "")
 	cpus = flag.Int("cpus", runtime.GOMAXPROCS(-1), "")
 
-	disableCompression = flag.Bool("disable-compression", false, "")
-	disableKeepAlives  = flag.Bool("disable-keepalive", false, "")
-	disableRedirects   = flag.Bool("disable-redirects", false, "")
-	proxyAddr          = flag.String("x", "", "")
+	disableCompression   = flag.Bool("disable-compression", false, "")
+	disableKeepAlives    = flag.Bool("disable-keepalive", false, "")
+	disableRedirects     = flag.Bool("disable-redirects", false, "")
+	proxyAddr            = flag.String("x", "", "")
+	randomRequestIDQuery = flag.String("random-request-id-query", "", "")
 )
 
 var usage = `Usage: hey [options...] <url>
@@ -101,6 +102,7 @@ Options:
   -disable-redirects    Disable following of HTTP redirects
   -cpus                 Number of used cpu cores.
                         (default for current machine is %d cores)
+  -random-request-id-query  Add random request ID query parameter with the specified name.
 `
 
 func main() {
@@ -222,18 +224,19 @@ func main() {
 	req.Header = header
 
 	w := &requester.Work{
-		Request:            req,
-		RequestBody:        bodyAll,
-		N:                  num,
-		C:                  conc,
-		QPS:                q,
-		Timeout:            *t,
-		DisableCompression: *disableCompression,
-		DisableKeepAlives:  *disableKeepAlives,
-		DisableRedirects:   *disableRedirects,
-		H2:                 *h2,
-		ProxyAddr:          proxyURL,
-		Output:             *output,
+		Request:              req,
+		RequestBody:          bodyAll,
+		N:                    num,
+		C:                    conc,
+		QPS:                  q,
+		Timeout:              *t,
+		DisableCompression:   *disableCompression,
+		DisableKeepAlives:    *disableKeepAlives,
+		DisableRedirects:     *disableRedirects,
+		H2:                   *h2,
+		ProxyAddr:            proxyURL,
+		Output:               *output,
+		RandomRequestIDQuery: *randomRequestIDQuery,
 	}
 	w.Init()
 
